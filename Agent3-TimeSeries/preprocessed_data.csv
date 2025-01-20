@@ -1,0 +1,156 @@
+```python
+import yfinance as yf
+import pandas as pd
+from alpha_vantage.timeseries import TimeSeries
+import numpy as np
+from datetime import datetime
+
+# Function to fetch data from yfinance
+def fetch_yfinance_data(symbols, start_date, end_date, interval="1d"):
+    """Fetches stock data from yfinance.
+
+    Args:
+        symbols: A list of stock symbols (e.g., ['AAPL', 'MSFT']).
+        start_date: The start date for the data (YYYY-MM-DD).
+        end_date: The end date for the data (YYYY-MM-DD).
+        interval: The data interval (e.g., '1d' for daily, '1h' for hourly).
+
+    Returns:
+        A pandas DataFrame containing the stock data, or None if an error occurs.
+    """
+    try:
+        data = yf.download(symbols, start=start_date, end=end_date, interval=interval)
+        return data
+    except Exception as e:
+        print(f"Error fetching data from yfinance: {e}")
+        return None
+
+
+# Function to fetch data from Alpha Vantage
+def fetch_alpha_vantage_data(symbol, api_key, outputsize='compact', datatype='csv'):
+    """Fetches stock data from Alpha Vantage.  Requires an API key.
+
+    Args:
+        symbol: The stock symbol (e.g., 'AAPL').
+        api_key: Your Alpha Vantage API key.
+        outputsize: Size of the dataset to be returned.  'compact' or 'full'.
+        datatype: Type of data to return. 'csv' or 'json'.
+
+    Returns:
+        A pandas DataFrame containing the stock data, or None if an error occurs.
+    """
+    try:
+        ts = TimeSeries(key=api_key, output_format=datatype)
+        data, meta_data = ts.get_daily(symbol, outputsize=outputsize)
+        if datatype == 'csv':
+            df = pd.read_csv(data)
+            df['timestamp'] = pd.to_datetime(df['timestamp'])
+            df = df.set_index('timestamp')
+            return df
+        else:
+            df = pd.DataFrame(data)
+            df['timestamp'] = pd.to_datetime(df['timestamp'])
+            df = df.set_index('timestamp')
+            return df
+
+    except Exception as e:
+        print(f"Error fetching data from Alpha Vantage: {e}")
+        return None
+
+
+# Function to preprocess the data
+def preprocess_data(data):
+    """Preprocesses the stock data.
+
+    Args:
+        data: A pandas DataFrame containing the stock data.
+
+    Returns:
+        A pandas DataFrame with preprocessed data, or None if an error occurs.
+    """
+    if data is None or data.empty:
+        return None
+
+    # Handle missing values (replace with mean for simplicity)
+    for col in ['Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume']:
+        if col in data.columns:
+            data[col] = data[col].fillna(data[col].mean())
+
+
+    #Remove outliers (using IQR method for simplicity.  More robust methods exist)
+    for col in ['Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume']:
+        if col in data.columns:
+            Q1 = data[col].quantile(0.25)
+            Q3 = data[col].quantile(0.75)
+            IQR = Q3 - Q1
+            lower_bound = Q1 - 1.5 * IQR
+            upper_bound = Q3 + 1.5 * IQR
+            data = data[(data[col] >= lower_bound) & (data[col] <= upper_bound)]
+
+
+    #Ensure consistent data types
+    for col in data.columns:
+        if pd.api.types.is_numeric_dtype(data[col]):
+            data[col] = pd.to_numeric(data[col])
+
+
+    return data
+
+
+# Main function
+def integrate_and_preprocess(symbols, start_date, end_date, api_key, source='yfinance'):
+    """Integrates and preprocesses stock market data.
+
+    Args:
+        symbols: A list of stock symbols.
+        start_date: The start date.
+        end_date: The end date.
+        api_key: Alpha Vantage API key (required if source='alpha_vantage').
+        source: Data source ('yfinance' or 'alpha_vantage').
+
+    Returns:
+        A pandas DataFrame containing the preprocessed data, or None if an error occurs.  Saves to CSV.
+    """
+    try:
+        if source == 'yfinance':
+            data = fetch_yfinance_data(symbols, start_date, end_date)
+        elif source == 'alpha_vantage':
+            combined_data = pd.DataFrame()
+            for symbol in symbols:
+                data = fetch_alpha_vantage_data(symbol, api_key)
+                if data is not None:
+                    data['Symbol'] = symbol
+                    combined_data = pd.concat([combined_data, data])
+            data = combined_data
+        else:
+            print("Invalid data source. Choose 'yfinance' or 'alpha_vantage'.")
+            return None
+
+        preprocessed_data = preprocess_data(data)
+
+        if preprocessed_data is not None:
+            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+            filename = f"stock_data_{timestamp}.csv"
+            preprocessed_data.to_csv(filename, index=True)
+            print(f"Preprocessed data saved to {filename}")
+            return preprocessed_data
+        else:
+            print("No data to preprocess or preprocessing failed.")
+            return None
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return None
+
+
+
+# Example usage:  Replace with your actual parameters
+symbols = ['AAPL', 'MSFT', 'GOOG']
+start_date = '2023-01-01'
+end_date = '2023-10-27'
+# api_key = 'YOUR_ALPHA_VANTAGE_API_KEY' # Uncomment and replace with your key if using Alpha Vantage
+api_key = '' #If using yfinance
+integrated_data = integrate_and_preprocess(symbols, start_date, end_date, api_key, source='yfinance') #Change source to 'alpha_vantage' if needed
+
+
+```
