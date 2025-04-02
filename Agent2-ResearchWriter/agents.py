@@ -7,7 +7,7 @@ import os
 
 
 ## call the gemini models
-llm=ChatGoogleGenerativeAI(model="gemini-1.5-flash",
+llm=ChatGoogleGenerativeAI(model="gemini-2.0-flash-exp",
                            verbose=True,
                            temperature=0.5,
                            google_api_key=os.getenv("GOOGLE_API_KEY"))

@@ -12,5 +12,5 @@ crew=Crew(
 
 ## starting the task execution process wiht enhanced feedback
 
-result=crew.kickoff(inputs={'topic':'Ai Agents in cyber security'})
+result=crew.kickoff(inputs={'topic':'News about Sunita Williams'})
 print(result)

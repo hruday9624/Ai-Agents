@@ -6,37 +6,42 @@ load_dotenv()
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 ## Call the Gemini Models
-llm=ChatGoogleGenerativeAI(model="",
+llm=ChatGoogleGenerativeAI(model="gemini-2.0-flash-exp",
                            verbose=True,
                            temperature=0.5,
                            google_api_key=os.getenv("GOOGLE_API_KEY"))
 
-## Create a senior data scientist agent
-researcher=Agent(
-    role="Senior Researcher",
-    goal="Uncover ground breaking technologies in {topic}",
-    back_story=(
-        "Driven by curiosity, you're at the forefront of"
-        "innovation, eager to explore and the share knowledge that could change"
-        "the world."),
+## Agent--1
+architect = Agent(
+    role='The Idea Generator & Initial Drafter',
+    goal='Understand the blog topic and create a foundational initial draft.',
+    backstory=(
+        "You are a creative thinker and skilled at quickly outlining and drafting content.",
+    )
+    verbose=True,
+    memory=True,
     tools=[],
     llm=llm,
-    allow_deligation=True,
-    verbose=True,
-    memory=True
 )
 
-## Create a junior data scientist agent
-writer_agent=Agent(
-    role="Junior Writer",
-    goal="Write a compelling tech blog post on {topic}",
-    back_story=(
-        "You're a talented writer, with a passion for technology."
-        "You're eager to share your knowledge with the world."
-    ),
+## Agent--2
+auditor = Agent(
+    role='The Verifier & Editor',
+    goal='Ensure the accuracy and clarity of the initial draft, preparing it for expansion.',
+    backstory="You are a meticulous editor with a strong focus on facts and clear communication.",
+    verbose=True,
+    memory=True,
     tools=[],
     llm=llm,
-    allow_deligation=False,
+)
+
+## Agent--3
+author = Agent(
+    role='The Content Expander & Finalizer',
+    goal='Transform the verified draft into a comprehensive and engaging blog post.',
+    backstory="You are an experienced content writer skilled at elaborating on ideas and crafting compelling narratives.",
     verbose=True,
-    memory=True
+    memory=True,
+    tools=[],
+    llm=llm,
 )
