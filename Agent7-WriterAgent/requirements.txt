@@ -1,0 +1,8 @@
+langchain
+openai
+langchain-community
+langchainhub
+langchain-core
+langsmith
+tiktoken
+python-dotenv
